@@ -162,7 +162,8 @@ function render_auditor_view_v5() {
             </select>
         </form>
         <?php if ($current_location_filter): ?>
-        <button type="button" class="js-start-qr-scan">Scan QR Code</button>
+        <!-- Add the data-location-id attribute like this -->
+        <button type="button" class="js-start-qr-scan" data-location-id="<?php echo $current_location_filter; ?>">Scan QR Code</button>
         <?php endif; ?>
     </div>
     <script>
@@ -351,31 +352,6 @@ function render_auditor_view_v5() {
             const okBtn = document.getElementById('confirmation-ok-btn');
             const noBtn = document.getElementById('confirmation-no-btn');
             let itemToConfirm = null; // This will hold the DOM element of the item being confirmed
-
-            // Listen for the broadcast from the reusable scanner
-            document.addEventListener('qrCodeScanned', function(event) {
-                const id = event.detail.id;
-                const targetItem = document.querySelector(`.audit-item[data-full-id="${id}"]`);
-
-                if (targetItem) {
-                    // If the item IS found, we proceed with our workflow.
-                    // The scanner will see the event was handled successfully.
-                    itemToConfirm = targetItem;
-                    const detailsButton = targetItem.querySelector('.view-details-btn');
-                    if (detailsButton) {
-                        detailsButton.click();
-                    }
-                    setTimeout(function() {
-                        confirmationMsg.textContent = `Is this the correct item? (${id})`;
-                        confirmationDialog.style.display = 'flex';
-                    }, 1000);
-                } else {
-                    // If the item IS NOT found, we call preventDefault().
-                    // This tells the reusable scanner that the scan was a failure, 
-                    // and it will handle showing the error message.
-                    event.preventDefault();
-                }
-            });
 
             // Handle the "OK!" button click on the confirmation dialog
             okBtn.addEventListener('click', function() {

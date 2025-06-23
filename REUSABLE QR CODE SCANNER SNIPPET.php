@@ -56,20 +56,23 @@ function render_reusable_qr_scanner_modal() {
 
             // --- Declare shared variables in the top-level scope ---
             let stream = null;
+            let currentLocationId = 0;
             let scanAnimation = null;
             let errorTimeout = null;
 
-            // --- Attach Event Listeners ---
+            // This now passes the location ID to the startScanner function
             document.body.addEventListener('click', function(event) {
                 if (event.target && event.target.classList.contains('js-start-qr-scan')) {
-                    startScanner();
+                    const locationId = event.target.dataset.locationId || 0;
+                    startScanner(locationId);
                 }
             });
             
             closeScannerBtn.addEventListener('click', stopScanner);
 
             // --- Define Functions ---
-            function startScanner() {
+            function startScanner(locationId) {
+                currentLocationId = locationId;
                 // Reset UI from any previous scan
                 clearTimeout(errorTimeout);
                 scannerModal.classList.remove('scanner-success');
@@ -129,40 +132,84 @@ function render_reusable_qr_scanner_modal() {
                     if (code) {
                         // Stop scanning while we process the code
                         cancelAnimationFrame(scanAnimation);
-                        handleQrCode(code.data);
+                        handleQrCode(code.data, currentLocationId);
                         return;
                     }
                 }
                 scanAnimation = requestAnimationFrame(tick);
             }
 
-            function handleQrCode(id) {
-                // Ask the page if this ID is valid by firing a cancellable event
-                const event = new CustomEvent('qrCodeScanned', { 
-                    detail: { id: id },
-                    cancelable: true
+            function handleQrCode(id, locationId) {
+                cancelAnimationFrame(scanAnimation);
+
+                const formData = new FormData();
+                formData.append('action', 'verify_qr_code');
+                formData.append('nonce', '<?php echo wp_create_nonce("audit_save_nonce"); ?>');
+                formData.append('scanned_id', id);
+                formData.append('location_id', locationId);
+
+                // Call the server to verify the code
+                fetch('<?php echo admin_url("admin-ajax.php"); ?>', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (!result.success) {
+                        // Handle server errors
+                        feedbackEl.textContent = result.data.message || 'An unknown error occurred.';
+                        feedbackEl.style.color = '#f44336';
+                        setTimeout(resumeScanning, 3000);
+                        return;
+                    }
+
+                    // Handle the different verdicts from the server
+                    switch (result.data.status) {
+                        case 'perfect_match':
+                            // Find the item on the page and mark it as found
+                            const targetItem = document.querySelector(`.audit-item[data-full-id="${id}"]`);
+                            if (targetItem) {
+                                const switchEl = targetItem.querySelector('.audit-switch');
+                                if (switchEl.dataset.state !== 'found') {
+                                    if(switchEl.dataset.state === 'pending') { switchEl.click(); }
+                                    if(switchEl.dataset.state === 'not-found') { switchEl.click(); switchEl.click(); }
+                                }
+                                targetItem.style.backgroundColor = '#d4edda';
+                            }
+
+                            // Show the green "OK!" screen and close
+                            video.style.display = 'none';
+                            feedbackEl.style.display = 'none';
+                            successOverlay.style.display = 'flex';
+                            scannerModal.classList.add('scanner-success');
+                            setTimeout(stopScanner, 1000);
+                            break;
+
+                        case 'location_mismatch':
+                            feedbackEl.textContent = result.data.message; // e.g., "This item belongs in Library."
+                            feedbackEl.style.color = '#ffc107'; // Yellow for warning
+                            setTimeout(resumeScanning, 4000); // Show warning for 4 seconds
+                            break;
+
+                        case 'unknown_item':
+                        default:
+                            feedbackEl.textContent = result.data.message || 'QR code not identified.';
+                            feedbackEl.style.color = '#f44336'; // Red for error
+                            setTimeout(resumeScanning, 3000);
+                            break;
+                    }
+                })
+                .catch(error => {
+                    feedbackEl.textContent = 'Network error. Please try again.';
+                    setTimeout(resumeScanning, 3000);
                 });
-                const wasHandledSuccessfully = document.dispatchEvent(event);
+            }
 
-                if (wasHandledSuccessfully) {
-                    // If the page handled it, show the green "OK!" screen
-                    video.style.display = 'none';
-                    feedbackEl.style.display = 'none';
-                    successOverlay.style.display = 'flex';
-                    scannerModal.classList.add('scanner-success');
-                    setTimeout(stopScanner, 1000); // Close automatically
-                } else {
-                    // If the page vetoed it (item not found), show an error message
-                    feedbackEl.textContent = `Error: Item ${id} not found in this location.`;
-                    feedbackEl.style.color = '#f44336';
-
-                    // After a delay, reset the message and resume scanning
-                    errorTimeout = setTimeout(() => {
-                        feedbackEl.textContent = 'Point camera at a QR code';
-                        feedbackEl.style.color = 'white';
-                        scanAnimation = requestAnimationFrame(tick); // Resume scanning
-                    }, 3000);
-                }
+            // A helper function to resume scanning after a message is shown
+            function resumeScanning() {
+                feedbackEl.textContent = 'Point camera at a QR code';
+                feedbackEl.style.color = 'white';
+                scanAnimation = requestAnimationFrame(tick);
             }
         });
     </script>
