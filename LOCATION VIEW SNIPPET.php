@@ -326,16 +326,6 @@ function render_auditor_view_v5() {
             <span class="saving-indicator">Saving...</span>
         </div>
     </div>
-    <!-- Add this entire block for the Confirmation Dialog -->
-    <div id="confirmation-dialog" class="confirmation-dialog">
-        <div class="confirmation-content">
-            <h3 id="confirmation-message">Is this the correct item?</h3>
-            <div class="confirmation-actions">
-                <button id="confirmation-no-btn" class="confirmation-btn">NO</button>
-                <button id="confirmation-ok-btn" class="confirmation-btn">OK!</button>
-            </div>
-        </div>
-    </div>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const auditSessionId = '<?php echo $audit_session_id; ?>';
@@ -346,49 +336,98 @@ function render_auditor_view_v5() {
                 'not-found': 'Not Found'
             };
 
-            // --- NEW: LOGIC FOR "SCAN, VERIFY, CONFIRM" WORKFLOW ---
-            const confirmationDialog = document.getElementById('confirmation-dialog');
-            const confirmationMsg = document.getElementById('confirmation-message');
-            const okBtn = document.getElementById('confirmation-ok-btn');
-            const noBtn = document.getElementById('confirmation-no-btn');
-            let itemToConfirm = null; // This will hold the DOM element of the item being confirmed
+            // --- NEW: ROBUST "CONFIRM ON CLOSE OR TIMEOUT" WORKFLOW ---
+            let confirmationTimer = null;
+            let itemBeingConfirmed = null;
+            let hasBeenConfirmed = false;
 
-            // Handle the "OK!" button click on the confirmation dialog
-            okBtn.addEventListener('click', function() {
-                if (itemToConfirm) {
-                    // Mark the item as found
-                    const switchEl = itemToConfirm.querySelector('.audit-switch');
-                    if(switchEl.dataset.state !== 'found') {
-                        if(switchEl.dataset.state === 'pending') { switchEl.click(); }
-                        if(switchEl.dataset.state === 'not-found') { switchEl.click(); switchEl.click(); }
-                    }
-                    itemToConfirm.style.backgroundColor = '#d4edda';
-                    itemToConfirm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // A single function to mark an item as found.
+            // It has a guard to ensure it only runs once.
+            function confirmItemAsFound() {
+                if (hasBeenConfirmed || !itemBeingConfirmed) {
+                    return; // Stop if already confirmed or no item is selected
                 }
+                hasBeenConfirmed = true; // Set the flag
+                clearTimeout(confirmationTimer); // Stop the timer
 
-                // Close both pop-ups
-                confirmationDialog.style.display = 'none';
-                document.getElementById('inventory-asset-detail-modal').style.display = 'none'; // Close the details modal
+                // Mark the item in the UI
+                const switchEl = itemBeingConfirmed.querySelector('.audit-switch');
+                if (switchEl.dataset.state !== 'found') {
+                    if (switchEl.dataset.state === 'pending') { switchEl.click(); }
+                    if (switchEl.dataset.state === 'not-found') { switchEl.click(); switchEl.click(); }
+                }
+                itemBeingConfirmed.style.backgroundColor = '#d4edda';
 
-                // --- Green flash feedback ---
-                const scannerModal = document.getElementById('qr-scanner-modal');
-                const successOverlay = document.getElementById('qr-success-overlay');
-                scannerModal.style.display = 'block';
-                successOverlay.style.display = 'flex';
-                scannerModal.classList.add('scanner-success');
-                setTimeout(() => { scannerModal.style.display = 'none'; }, 1000);
+                // Close the modal if it's still open
+                const detailsModal = document.getElementById('inventory-asset-detail-modal');
+                if (detailsModal) {
+                    detailsModal.style.display = 'none';
+                }
+            }
+
+            // Listen for the broadcast from the Reusable QR Scanner
+            document.addEventListener('qrCodeScanned', function(event) {
+                const id = event.detail.id;
+                const targetItem = document.querySelector(`.audit-item[data-full-id="${id}"]`);
+
+                if (targetItem) {
+                    // Reset state for this new scan
+                    itemBeingConfirmed = targetItem;
+                    hasBeenConfirmed = false;
+                    clearTimeout(confirmationTimer);
+
+                    // --- Step 1: Immediately close the scanner and show the details card ---
+                    document.getElementById('qr-scanner-modal')?.querySelector('#qr-close-btn').click();
+                    const detailsButton = targetItem.querySelector('.view-details-btn');
+                    if (detailsButton) {
+                        detailsButton.click();
+                    }
+
+                    // --- Step 2: Set the 10-second timer to confirm the item ---
+                    confirmationTimer = setTimeout(confirmItemAsFound, 10000); // 10000 milliseconds = 10 seconds
+
+                } else {
+                    // Veto the scan to show the error message in the scanner
+                    event.preventDefault();
+                }
             });
 
-            // Handle the "NO" button click on the confirmation dialog
-            noBtn.addEventListener('click', function() {
-                // Just close both pop-ups and let the user re-scan
-                confirmationDialog.style.display = 'none';
-                document.getElementById('inventory-asset-detail-modal').style.display = 'none';
-                itemToConfirm = null;
-                // Re-open the scanner automatically
-                document.querySelector('.js-start-qr-scan').click();
+            // --- NEW: Listen for the modal to be closed manually ---
+            const detailsModal = document.getElementById('inventory-asset-detail-modal');
+            if (detailsModal) {
+                // Listen for a click on the modal's 'X' button
+                detailsModal.querySelector('.inventory-details-modal-close').addEventListener('click', confirmItemAsFound);
+                // Listen for a click on the modal's background overlay
+                detailsModal.addEventListener('click', function(event) {
+                    if (event.target === detailsModal) {
+                        confirmItemAsFound();
+                    }
+                });
+            }
+
+            // We still need the mismatch listener for the details modal
+            document.addEventListener('mismatchReported', function(event) {
+                clearTimeout(confirmationTimer); // Stop the auto-confirmation timer!
+
+                const id = event.detail.id;
+                const targetItem = document.querySelector(`.audit-item[data-full-id="${id}"]`);
+
+                if (targetItem) {
+                    // Mark the item as "Found" and "Needs Revision"
+                    const switchEl = targetItem.querySelector('.audit-switch');
+                    if (switchEl.dataset.state !== 'found') {
+                    if(switchEl.dataset.state === 'pending') { switchEl.click(); }
+                    if(switchEl.dataset.state === 'not-found') { switchEl.click(); switchEl.click(); }
+                    }
+                    const conditionSelect = targetItem.querySelector('.audit-condition-select');
+                    conditionSelect.value = 'Needs Revision';
+                    conditionSelect.dispatchEvent(new Event('change'));
+                    targetItem.querySelector('.audit-notes').value = 'QR code does not match the item description.';
+                    targetItem.style.backgroundColor = '#fffbe6';
+                    targetItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
             });
-            // --- END: NEW WORKFLOW LOGIC ---
+            // --- END: FINAL WORKFLOW LOGIC ---
 
             // Audit interaction logic
             document.querySelectorAll('.audit-switch').forEach(switchEl => {

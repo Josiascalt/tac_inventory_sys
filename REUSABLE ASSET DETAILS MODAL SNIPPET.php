@@ -38,52 +38,63 @@ function render_reusable_inventory_modal() {
                     <p><strong>Usable Life:</strong> <span id="modal-usable-life"></span> years</p>
                     <p><strong>Depreciation Status:</strong> <span id="modal-dep-status"></span></p>
                     <p><strong>Depreciation End Date:</strong> <span id="modal-dep-end-date"></span></p>
+                    <!-- Add this new paragraph for the mismatch link -->
+                    <p id="modal-mismatch-container" style="margin-top: 20px; font-size: 0.9em; text-align: center;">
+                        If the item above does not match, please <a href="#" id="modal-mismatch-link" style="color: #d9534f; font-weight: bold;">press here</a>.
+                    </p>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const modal = document.getElementById('inventory-asset-detail-modal');
-        const closeModal = modal.querySelector('.inventory-details-modal-close');
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('inventory-asset-detail-modal');
+            const closeModal = modal.querySelector('.inventory-details-modal-close');
+            const mismatchLink = document.getElementById('modal-mismatch-link');
+            let currentAssetId = null;
 
-        // Use a single event listener on the document body to catch clicks on any 'view-details-btn'
-        document.body.addEventListener('click', function(event) {
-            if (event.target && event.target.classList.contains('view-details-btn')) {
-                const button = event.target;
-                
-                // Populate modal from the button's data attributes
-                document.getElementById('modal-title').textContent = button.dataset.title + ' (' + button.dataset.assetId + ')';
-                document.getElementById('modal-brand').textContent = button.dataset.brand;
-                document.getElementById('modal-desc').textContent = button.dataset.desc;
-                document.getElementById('modal-price').textContent = button.dataset.price;
-                document.getElementById('modal-purchase-date').textContent = button.dataset.purchaseDate;
-                document.getElementById('modal-usable-life').textContent = button.dataset.usableLife;
-                document.getElementById('modal-dep-status').textContent = button.dataset.depStatus;
-                document.getElementById('modal-dep-end-date').textContent = button.dataset.depEndDate;
-                
-                const imgContainer = document.getElementById('modal-image-container');
-                const imageUrl = button.dataset.imageUrl;
-                if (imageUrl) {
-                    imgContainer.innerHTML = `<img src="${imageUrl}" alt="Asset Image">`;
-                } else {
-                    imgContainer.innerHTML = '<p>No image available.</p>';
+            // Use a single event listener on the document body
+            document.body.addEventListener('click', function(event) {
+                if (event.target && event.target.classList.contains('view-details-btn')) {
+                    const button = event.target;
+                    currentAssetId = button.dataset.assetId; // Keep track of the current ID
+
+                    // Populate modal from the button's data attributes
+                    document.getElementById('modal-title').textContent = button.dataset.title + ' (' + button.dataset.assetId + ')';
+                    document.getElementById('modal-brand').textContent = button.dataset.brand;
+                    document.getElementById('modal-desc').textContent = button.dataset.desc;
+                    document.getElementById('modal-price').textContent = button.dataset.price;
+                    document.getElementById('modal-purchase-date').textContent = button.dataset.purchaseDate;
+                    document.getElementById('modal-usable-life').textContent = button.dataset.usableLife;
+                    document.getElementById('modal-dep-status').textContent = button.dataset.depStatus;
+                    document.getElementById('modal-dep-end-date').textContent = button.dataset.depEndDate;
+
+                    const imgContainer = document.getElementById('modal-image-container');
+                    imgContainer.innerHTML = button.dataset.imageUrl ? `<img src="${button.dataset.imageUrl}" alt="Asset Image">` : '<p>No image available.</p>';
+
+                    modal.style.display = 'block';
                 }
+            });
 
-                // Show modal
-                modal.style.display = 'block';
+            // Event listener for the new mismatch link
+            mismatchLink.addEventListener('click', function(event) {
+                event.preventDefault(); // Stop the link from navigating
+                // Broadcast that a mismatch was reported
+                if (currentAssetId) {
+                    document.dispatchEvent(new CustomEvent('mismatchReported', { detail: { id: currentAssetId } }));
+                }
+                modal.style.display = 'none'; // Close the modal
+            });
+
+            // Close modal listeners
+            closeModal.onclick = function() { modal.style.display = 'none'; }
+            window.onclick = function(event) {
+                if (event.target == modal) {
+                    modal.style.display = 'none';
+                }
             }
         });
-
-        // Close modal listeners
-        closeModal.onclick = function() { modal.style.display = 'none'; }
-        window.onclick = function(event) {
-            if (event.target == modal) {
-                modal.style.display = 'none';
-            }
-        }
-    });
     </script>
     <?php
 }
