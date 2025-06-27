@@ -94,59 +94,8 @@ function render_auditor_view_v5() {
             display: none;
         }
 
-        /* New styles for the Confirmation Dialog */
-        .confirmation-dialog {
-            display: none;
-            position: fixed;
-            z-index: 1070;
-            /* Higher than the details modal */
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.6);
-            justify-content: center;
-            align-items: center;
-        }
-
-        .confirmation-content {
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 8px;
-            text-align: center;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-        }
-
-        .confirmation-content h3 {
-            margin-top: 0;
-        }
-
-        .confirmation-actions {
-            margin-top: 20px;
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-        }
-
-        .confirmation-btn {
-            padding: 10px 25px;
-            font-size: 1em;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            color: white;
-        }
-
-        #confirmation-ok-btn {
-            background-color: #4caf50;
-        }
-
-        #confirmation-no-btn {
-            background-color: #f44336;
-        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.1/dist/browser-image-compression.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 
     <div class="inventory-filter-form" style="margin-bottom: 30px; padding: 20px; background-color: #f9f9f9; border-radius: 8px;">
         <form id="location-filter-form" method="GET" action="">
@@ -429,19 +378,45 @@ function render_auditor_view_v5() {
             });
             // --- END: FINAL WORKFLOW LOGIC ---
 
-            // Audit interaction logic
             document.querySelectorAll('.audit-switch').forEach(switchEl => {
                 switchEl.addEventListener('click', function() {
-                    const item = this.closest('.audit-item');
-                    const controls = item.querySelector('.audit-controls');
-                    const conditionSelect = item.querySelector('.audit-condition-select');
+                    // --- Determine the next state ---
+                    const states = ['pending', 'found', 'not-found'];
+                    const stateLabels = { pending: 'Pending', found: 'Found', 'not-found': 'Not Found' };
                     const currentState = this.dataset.state;
                     const nextIndex = (states.indexOf(currentState) + 1) % states.length;
                     const nextState = states[nextIndex];
+
+                    // --- Update the switch's appearance first ---
                     this.dataset.state = nextState;
                     this.textContent = stateLabels[nextState];
-                    controls.style.display = (nextState === 'found') ? 'inline-block': 'none';
-                    conditionSelect.dispatchEvent(new Event('change'));
+
+                    // --- Now, safely find and update the other UI elements ---
+                    const item = this.closest('.audit-item');
+                    if (!item) return; // Exit if the parent item isn't found
+
+                    const controls = item.querySelector('.audit-controls');
+                    const revisionWrapper = item.querySelector('.audit-revision-wrapper');
+                    const conditionSelect = item.querySelector('.audit-condition-select');
+
+                    // This is the new, safer logic
+                    if (nextState === 'found') {
+                        if (controls) {
+                            controls.style.display = 'inline-block';
+                        }
+                    } else {
+                        // If the status is 'Pending' or 'Not Found', hide everything and reset the condition.
+                        if (controls) {
+                            controls.style.display = 'none';
+                        }
+                        if (revisionWrapper) {
+                            revisionWrapper.style.display = 'none';
+                        }
+                        // This is the crucial part that resets the other listener
+                        if (conditionSelect) {
+                            conditionSelect.value = 'Okay';
+                        }
+                    }
                 });
             });
 
@@ -507,6 +482,33 @@ function render_auditor_view_v5() {
                     indicator.style.display = 'none';
                     return;
                 }
+
+                // --- NEW: Clean up data for non-found items before processing ---
+                auditItems.forEach(item => {
+                    const state = item.querySelector('.audit-switch').dataset.state;
+                    if (state !== 'found') {
+                        // If the item is 'Pending' or 'Not Found', clear its revision form.
+                        const notesTextarea = item.querySelector('.audit-notes');
+                        if (notesTextarea) notesTextarea.value = '';
+
+                        // This clears the file from both the "upload" and "capture" inputs.
+                        const fileUploadInput = item.querySelector('.audit-photo-upload');
+                        if (fileUploadInput) fileUploadInput.value = '';
+
+                        const fileCaptureInput = item.querySelector('.audit-photo-capture');
+                        if (fileCaptureInput) fileCaptureInput.value = '';
+
+                        // This clears the file object we store for the upload process.
+                        if (item.selectedFile) {
+                            item.selectedFile = null;
+                        }
+
+                        // This clears the displayed file name.
+                        const fileNameDisplay = item.querySelector('.file-name-display');
+                        if (fileNameDisplay) fileNameDisplay.textContent = '';
+                    }
+                });
+                // --- END: Data cleanup ---
 
                 // --- NEW: Validation for "Needs Revision" fields ---
                 let validationPassed = true;
