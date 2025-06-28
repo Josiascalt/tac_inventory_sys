@@ -178,7 +178,7 @@
  
          if ($location_id && $total_quantity === 0) { continue; }
          ?>
-         <div class="inventory-master-item">
+         <div class="inventory-master-item" id="inventory-item-<?php echo $master_item_id; ?>">
              <div class="item-header">
                  <?php if (has_post_thumbnail()) : ?><img src="<?php the_post_thumbnail_url('medium'); ?>" alt="<?php the_title(); ?>"><?php endif; ?>
                  <div class="item-title-area">
