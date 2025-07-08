@@ -136,18 +136,10 @@
                          <tr>
                              <td><?php echo esc_html($item->full_asset_id); ?></td>
                              <td>
-                                 <button type="button" class="view-details-btn" 
-                                     data-asset-id="<?php echo esc_attr($item->full_asset_id); ?>"
-                                     data-image-url="<?php echo esc_attr(!empty($item->revision_photo_url) ? $item->revision_photo_url : ($master_details['featured_image_url'] ?? '')); ?>"
-                                     data-title="<?php echo esc_attr($master_details['title'] ?? 'N/A'); ?>"
-                                     data-brand="<?php echo esc_attr($master_details['brand'] ?? 'N/A'); ?>"
-                                     data-desc="<?php echo esc_attr($master_details['short_desc'] ?? 'N/A'); ?>"
-                                     data-price="<?php echo esc_attr($stock_details['price'] ?? 'N/A'); ?>"
-                                     data-purchase-date="<?php echo esc_attr($purchase_date_obj ? $purchase_date_obj->format('d/m/Y') : 'N/A'); ?>"
-                                     data-usable-life="<?php echo esc_attr($master_details['usable_life'] ?? 'N/A'); ?>"
-                                     data-dep-status="<?php echo esc_attr($stock_details['dep_status'] ?? 'N/A'); ?>"
-                                     data-dep-end-date="<?php echo esc_attr($dep_end_date_obj ? $dep_end_date_obj->format('d/m/Y') : 'N/A'); ?>"
-                                 >View Details</button>
+                                <button type="button" class="view-details-btn"
+                                    data-stock-id="<?php echo esc_attr($item->stock_entry_id); ?>"
+                                    data-asset-id="<?php echo esc_attr($item->full_asset_id); ?>"
+                                >View Details</button>
                              </td>
                              <td class="condition-<?php echo esc_attr(strtolower(str_replace(' ', '-', $item->audit_condition))); ?>"><?php echo esc_html($item->audit_condition); ?></td>
                              <td><?php echo nl2br(esc_html($item->revision_notes)); ?></td>
@@ -174,16 +166,10 @@
                          <tr>
                              <td><?php echo esc_html($item->full_asset_id); ?></td>
                               <td>
-                                 <button type="button" class="view-details-btn" 
-                                     data-asset-id="<?php echo esc_attr($item->full_asset_id); ?>"
-                                     data-image-url="<?php echo esc_attr($master_details['featured_image_url'] ?? ''); ?>"
-                                     data-title="<?php echo esc_attr($master_details['title'] ?? 'N/A'); ?>"
-                                     data-brand="<?php echo esc_attr($master_details['brand'] ?? 'N/A'); ?>"
-                                     data-desc="<?php echo esc_attr($master_details['short_desc'] ?? 'N/A'); ?>"
-                                     data-price="<?php echo esc_attr($stock_details['price'] ?? 'N/A'); ?>"
-                                     data-purchase-date="<?php echo esc_attr($purchase_date_obj ? $purchase_date_obj->format('d/m/Y') : 'N/A'); ?>"
-                                     data-usable-life="<?php echo esc_attr($master_details['usable_life'] ?? 'N/A'); ?>"
-                                 >View Details</button>
+                                <button type="button" class="view-details-btn"
+                                    data-stock-id="<?php echo esc_attr($item->stock_entry_id); ?>"
+                                    data-asset-id="<?php echo esc_attr($item->full_asset_id); ?>"
+                                >View Details</button>
                              </td>
                              <td><?php echo $last_seen_date ? esc_html(date("d/m/Y", strtotime($last_seen_date))) : 'Date Not Available'; ?></td>
                          </tr>

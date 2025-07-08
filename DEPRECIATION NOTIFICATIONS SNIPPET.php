@@ -69,6 +69,7 @@ function render_depreciation_notifications_shortcode($atts) {
             }
 
             $notification_data = [
+                'stock_id' => $stock_id,
                 'full_asset_id' => $full_asset_id,
                 'master_item_title' => $linked_item ? $linked_item->post_title : 'Unknown Item',
                 'location' => $location_name,
@@ -136,16 +137,9 @@ function render_depreciation_notifications_shortcode($atts) {
                 }
             ?>
                 <div class="notification-item view-details-btn"
-                    data-asset-id="<?php echo esc_attr($item['full_asset_id']); ?>"
-                    data-image-url="<?php echo esc_attr($item['image_url']); ?>"
-                    data-title="<?php echo esc_attr($item['master_item_title']); ?>"
-                    data-brand="<?php echo esc_attr($item['brand']); ?>"
-                    data-desc="<?php echo esc_attr($item['short_desc']); ?>"
-                    data-price="<?php echo esc_attr($item['price']); ?>"
-                    data-purchase-date="<?php echo esc_attr($item['purchase_date_formatted']); ?>"
-                    data-usable-life="<?php echo esc_attr($item['usable_life']); ?>"
-                    data-dep-status="<?php echo esc_attr($item['dep_status']); ?>"
-                    data-dep-end-date="<?php echo esc_attr($item['dep_end_date_formatted']); ?>">
+                    data-stock-id="<?php echo esc_attr($item['stock_id']); ?>"
+                    data-asset-id="<?php echo esc_attr($item['full_asset_id']); ?>">
+                    
                     <div class="notification-confirm-wrap">
                         <input type="checkbox" class="depreciation-confirm-checkbox" data-asset-id="<?php echo esc_attr($item['full_asset_id']); ?>" title="Acknowledge this notification">
                     </div>
@@ -163,16 +157,9 @@ function render_depreciation_notifications_shortcode($atts) {
                 $date_obj = DateTime::createFromFormat('Ymd', $item['dep_end_date']);
             ?>
                 <div class="notification-item view-details-btn"
-                    data-asset-id="<?php echo esc_attr($item['full_asset_id']); ?>"
-                    data-image-url="<?php echo esc_attr($item['image_url']); ?>"
-                    data-title="<?php echo esc_attr($item['master_item_title']); ?>"
-                    data-brand="<?php echo esc_attr($item['brand']); ?>"
-                    data-desc="<?php echo esc_attr($item['short_desc']); ?>"
-                    data-price="<?php echo esc_attr($item['price']); ?>"
-                    data-purchase-date="<?php echo esc_attr($item['purchase_date_formatted']); ?>"
-                    data-usable-life="<?php echo esc_attr($item['usable_life']); ?>"
-                    data-dep-status="<?php echo esc_attr($item['dep_status']); ?>"
-                    data-dep-end-date="<?php echo esc_attr($item['dep_end_date_formatted']); ?>">
+                    data-stock-id="<?php echo esc_attr($item['stock_id']); ?>"
+                    data-asset-id="<?php echo esc_attr($item['full_asset_id']); ?>">
+
                     <div class="notification-confirm-wrap">
                         <input type="checkbox" class="depreciation-confirm-checkbox" data-asset-id="<?php echo esc_attr($item['full_asset_id']); ?>" title="Acknowledge this notification">
                     </div>

@@ -220,27 +220,10 @@ function render_auditor_view_v5() {
                             </select>
                         </div>
 
-                        <button type="button" class="view-details-btn" data-asset-id="<?php echo esc_attr(
-                            $full_asset_id
-                        ); ?>" data-image-url="<?php echo esc_attr(
-                            get_the_post_thumbnail_url($master_item_id, "medium")
-                        ); ?>" data-title="<?php echo esc_attr(
-                            $linked_item->post_title
-                        ); ?>" data-brand="<?php echo esc_attr(
-                            get_field("brand", $master_item_id)
-                        ); ?>" data-desc="<?php echo esc_attr(
-                            get_field("short_description", $master_item_id)
-                        ); ?>" data-price="<?php echo esc_attr(
-                            get_field("item_price")
-                        ); ?>" data-purchase-date="<?php echo esc_attr(
-                            $purchase_date_obj ? $purchase_date_obj->format("d/m/Y") : "N/A"
-                        ); ?>" data-usable-life="<?php echo esc_attr(
-                            get_field("usable_life", $master_item_id)
-                        ); ?>" data-dep-status="<?php echo esc_attr(
-                            get_field("depreciation_status")
-                        ); ?>" data-dep-end-date="<?php echo esc_attr(
-                            $dep_end_date_obj ? $dep_end_date_obj->format("d/m/Y") : "N/A"
-                        ); ?>">Details</button>
+                        <button type="button" class="view-details-btn" 
+                            data-stock-id="<?php echo esc_attr($stock_id); ?>"
+                            data-asset-id="<?php echo esc_attr($full_asset_id); ?>"
+                        >Details</button>
 
                         <div class="audit-revision-wrapper">
                             <div class="needs-revision-form">
